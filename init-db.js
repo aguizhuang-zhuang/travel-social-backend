@@ -48,7 +48,7 @@ async function initDatabase() {
     
   } catch (error) {
     console.error('❌ 数据库初始化失败:', error.message);
-    process.exit(1);
+    // 不退出进程，允许服务继续运行
   }
 }
 
