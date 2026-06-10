@@ -8,6 +8,15 @@
  *   5. 启动 HTTP 服务
  */
 
+// ==================== 进程级崩溃保护 ====================
+// Node.js 22+ 未捕获的异常/拒绝会直接杀进程，必须兜底
+process.on('uncaughtException', (err) => {
+  console.error('[致命错误-未捕获异常]', err.stack || err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[致命错误-未捕获拒绝]', reason?.stack || reason);
+});
+
 // 在所有模块之前加载 .env 环境变量
 require('dotenv').config();
 
@@ -64,10 +73,15 @@ app.use('/api/payments', paymentsRoutes);
 // 根路径健康检查
 app.get('/', (_req, res) => {
   res.json({
-    message: '欢迎来到泰国社交活动平台 API 🎉',
+    message: '欢迎来到泰国社交活动平台 API',
     version: '1.0.0',
     docs: '请查看各 /api/* 路由',
   });
+});
+
+// Railway 健康检查专用端点（必须 200）
+app.get('/health', (_req, res) => {
+  res.status(200).send('OK');
 });
 
 // ==================== 404 兜底 ====================
