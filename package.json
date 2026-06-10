@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "init-db": "node init-db.js",
-    "postinstall": "npm run init-db"
+    "postinstall": "echo '跳过构建阶段数据库初始化，将在启动时自动创建表'"
   },
   "keywords": ["travel", "social", "thailand", "events", "airwallex", "payment"],
   "license": "MIT",
