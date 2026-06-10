@@ -20,11 +20,10 @@ const commonConfig = {
 let pool;
 
 if (process.env.DATABASE_URL) {
-  // Railway：直接使用 connectionString，pg 会自动解析
+  // Railway：使用 connectionString，内部网络无需 SSL
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ...commonConfig,
-    ssl: { rejectUnauthorized: false },
   });
 } else {
   // 本地开发配置
@@ -38,15 +37,16 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-// 连接池启动时快速自检：执行一条简单查询验证连通性
-pool.query('SELECT NOW()')
-  .then(result => {
-    console.log('✅ 数据库连接成功 — 服务器时间:', result.rows[0].now);
-  })
-  .catch(err => {
-    // 注意：启动时不中断服务，因为数据库可能尚未就绪
-    console.warn('⚠️  数据库连接失败（服务仍会启动）:', err.message);
-  });
+// 连接池启动时不立即自检，避免健康检查失败
+setTimeout(() => {
+  pool.query('SELECT NOW()')
+    .then(result => {
+      console.log('✅ 数据库连接成功 — 服务器时间:', result.rows[0].now);
+    })
+    .catch(err => {
+      console.warn('⚠️  数据库连接失败（服务仍会启动）:', err.message);
+    });
+}, 5000); // 延迟 5 秒执行
 
 /**
  * 执行参数化 SQL 查询（推荐方式，防 SQL 注入）

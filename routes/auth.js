@@ -16,29 +16,26 @@ const bcrypt = require('bcryptjs');
 
 // ==================== 模拟用户数据库（内存） ====================
 // 后续替换为 PostgreSQL 查询（users 表）
-const mockUsers = [
-  {
-    id: 1,
-    username: 'traveler_somchai',
-    email: 'somchai@example.com',
-    // 明文密码 "123456" 的 bcrypt 哈希（10 轮加盐）
-    password: bcrypt.hashSync('123456', 10),
-    avatar: null,
-    nationality: '泰国',
-    city: '曼谷',
-    created_at: '2026-01-15T08:00:00Z',
-  },
-  {
-    id: 2,
-    username: 'bangkok_plam',
-    email: 'plam@example.com',
-    password: bcrypt.hashSync('123456', 10),
-    avatar: null,
-    nationality: '泰国',
-    city: '清迈',
-    created_at: '2026-03-20T10:30:00Z',
-  },
-];
+// 延迟初始化以避免模块加载时 bcrypt 崩溃
+let mockUsers = null;
+
+function getMockUsers() {
+  if (mockUsers) return mockUsers;
+  const hash = bcrypt.hashSync('123456', 10);
+  mockUsers = [
+    {
+      id: 1, username: 'traveler_somchai', email: 'somchai@example.com',
+      password: hash, avatar: null, nationality: '泰国', city: '曼谷',
+      created_at: '2026-01-15T08:00:00Z',
+    },
+    {
+      id: 2, username: 'bangkok_plam', email: 'plam@example.com',
+      password: hash, avatar: null, nationality: '泰国', city: '清迈',
+      created_at: '2026-03-20T10:30:00Z',
+    },
+  ];
+  return mockUsers;
+}
 
 // ==================== POST /api/auth/register ====================
 /**
@@ -59,14 +56,15 @@ router.post('/register', async (req, res) => {
     }
 
     // --- 模拟：检查邮箱是否已被注册 ---
-    const exists = mockUsers.find(u => u.email === email);
+    const users = getMockUsers();
+    const exists = users.find(u => u.email === email);
     if (exists) {
       return res.status(409).json({ error: '该邮箱已被注册' });
     }
 
     // --- 模拟：创建新用户（后续替换为 INSERT INTO users...） ---
     const newUser = {
-      id: mockUsers.length + 1,
+      id: users.length + 1,
       username,
       email,
       password: bcrypt.hashSync(password, 10),
@@ -75,7 +73,7 @@ router.post('/register', async (req, res) => {
       city: '曼谷',
       created_at: new Date().toISOString(),
     };
-    mockUsers.push(newUser);
+    users.push(newUser);
 
     // --- 生成 JWT ---
     const secret = process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod';
@@ -115,7 +113,8 @@ router.post('/login', async (req, res) => {
     }
 
     // --- 模拟：查找用户 ---
-    const user = mockUsers.find(u => u.email === email);
+    const users = getMockUsers();
+    const user = users.find(u => u.email === email);
     if (!user) {
       return res.status(401).json({ error: '邮箱或密码不正确' });
     }
