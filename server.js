@@ -90,24 +90,21 @@ app.use((err, _req, res, _next) => {
 });
 
 // ==================== 启动服务 ====================
-const initDatabase = (process.env.NODE_ENV === 'production' || process.env.AUTO_INIT_DB === 'true')
-  ? require('./init-db')
-  : null;
-
-app.listen(PORT, async () => {
-  console.log(`🚀 泰国社交活动平台后端已启动 → http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 泰国社交活动平台后端已启动 → 端口:${PORT}`);
   console.log('📡 环境:', process.env.NODE_ENV || 'development');
-  
-  // 生产环境自动初始化数据库（创建表和种子数据）
-  if (initDatabase) {
-    console.log('🔄 正在初始化数据库...');
-    try {
-      await initDatabase();
-    } catch (err) {
-      console.warn('⚠️ 数据库初始化失败（服务仍会运行）:', err.message);
-    }
-  }
 });
+
+// 生产环境延迟 3 秒后初始化数据库，确保健康检查先通过
+if (process.env.NODE_ENV === 'production') {
+  setTimeout(() => {
+    const initDatabase = require('./init-db');
+    console.log('🔄 正在初始化数据库...');
+    initDatabase().catch(err => {
+      console.warn('⚠️ 数据库初始化失败（服务仍会运行）:', err.message);
+    });
+  }, 3000);
+}
 
 // 导出 app 供测试使用
 module.exports = app;

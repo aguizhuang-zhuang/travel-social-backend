@@ -11,37 +11,32 @@
 const { Pool } = require('pg');
 
 // 从环境变量读取数据库配置，支持 Railway 的 DATABASE_URL
-let dbConfig = {
+const commonConfig = {
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 };
 
+let pool;
+
 if (process.env.DATABASE_URL) {
-  // Railway 提供的 DATABASE_URL 格式：postgresql://user:password@host:port/database
-  const url = new URL(process.env.DATABASE_URL);
-  dbConfig = {
-    ...dbConfig,
-    host: url.hostname,
-    port: url.port || 5432,
-    database: url.pathname.substring(1), // 去掉开头的 '/'
-    user: url.username,
-    password: url.password,
-    ssl: { rejectUnauthorized: false }, // Railway 需要 SSL
-  };
+  // Railway：直接使用 connectionString，pg 会自动解析
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ...commonConfig,
+    ssl: { rejectUnauthorized: false },
+  });
 } else {
   // 本地开发配置
-  dbConfig = {
-    ...dbConfig,
+  pool = new Pool({
+    ...commonConfig,
     host:     process.env.DB_HOST     || 'localhost',
     port:     parseInt(process.env.DB_PORT, 10) || 5432,
     database: process.env.DB_NAME     || 'travel_social',
     user:     process.env.DB_USER     || 'postgres',
     password: process.env.DB_PASSWORD || '',
-  };
+  });
 }
-
-const pool = new Pool(dbConfig);
 
 // 连接池启动时快速自检：执行一条简单查询验证连通性
 pool.query('SELECT NOW()')
